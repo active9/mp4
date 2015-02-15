@@ -1,0 +1,26 @@
+{
+  "name": "mp4",
+  "version": "0.0.1",
+  "description": "A Pure Javascript Mp4 Container Parser Based On ISO_ISEC_14496-12",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/active9/mp4"
+  },
+  "keywords": [
+    "mp4",
+    "container",
+    "atom",
+    "moov",
+    "ISO_ISEC_14496-12"
+  ],
+  "author": "Active 9 LLC",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/active9/mp4/issues"
+  },
+  "homepage": "https://github.com/active9/mp4"
+}
