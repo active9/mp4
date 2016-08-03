@@ -1,6 +1,26 @@
 //
 // MP4 - A Pure Javascript Mp4 Container Parser Based On ISO_IEC_14496-12
+// LICENSE: MIT
+// COPYRIGHT: 2015 Active 9 LLC.
 //
+
+/*
+ *
+ * Synopsis:
+ *     The MP4 or Motion Picture v4 is a fully adaptive formated losely
+ * based on the mpeg / mp3 containers. The origins of the mp4 date back
+ * to the year 2000 on IRC. The MPEG group graciously adopted said format
+ * and many codecs based on the mp4 container and motion vector technology
+ * began to emerge. This paved the way for high quality low bitrate real-time
+ * audio/video streaming and recording. Over 15 years later the mp4 container
+ * is now the defacto standard installed on billions of devices and in billions
+ * of homes world-wide. It has paved the way to future HD audio/video streaming 
+ * as well as 3d VR technologies.
+ *
+ * This library implements the ISO_IEC_14496-12 mp4 container as a parser for
+ * nodejs. This is a low-level library designed to work with mp4v1 / mp4v2 codecs.
+ *
+ */
 
 //
 // WARNING - This implementation is unfinished.
@@ -10,52 +30,79 @@
 //	- udta meta data parsing
 //
 
+var fs = require('fs');
+var path = require('path');
+var util = require('util');
+var buffer= new Buffer(512000000);
+
 module.exports = function(mp4file) {
+
+	mp4file = path.resolve(mp4file);
+	console.log("Parsing ", mp4file);
+	var mp4data = fs.openSync(mp4file,'r+');
+	var mp4stats = fs.statSync(mp4file);
+	var file_size = mp4stats.size;
+	console.log("Filesize ", file_size, ' bytes');
 	var offset = 0;
-	var atom_size = 0;
+	var atom_size = 16;
+	var atom_type = "ftyp"; 
 
-	var mp4 = {};
+	var mp4 = {
+		ftyp: {}
+	};
 
-	while(offset<file_size) {
+	while(offset<=file_size) {
+		//console.log("OFFSET:", offset);
 
+		// Forget The Yellow Pages (aka Brands) 
 		if (atom_type=="ftyp") {
-			var major_brand = 0;// read 4 bytes unpacked N
-			var minor_version = 0;// read 4 bytes unpacked N
-			var compatible_brands = 0; // read 4 bytes
+			mp4.major_brand = fs.readSync(mp4data, buffer, offset, 4, 0);
+			mp4.minor_version = fs.readSync(mp4data, buffer, offset, 4, 4);
+			mp4.compatible_brands = fs.readSync(mp4data, buffer, offset, 4, 8);
 
-			mp4[ftyp] = {
-				"major_brand": major_brand,
-				"minor_version": minor_version,
-				"compatible_brands": compatible_brands
-			}
-		} else if (atom_type=="moov") {
-			parse_moov(offset);
+			// seek offset
+			offset += atom_size;
+			atom_type = 'moov';
+
+		// Motion Object Oriented Vector (aka Moov)
+		}
+		if (atom_type=="moov") {
+			parse_moov(mp4data, buffer, offset);
+
+			// seek offset
+			offset += atom_size;
 		}
 	}
 
-	offset += atom_size;
-	// seek offset
+	console.log("Mp4:", mp4);
+	fs.closeSync(mp4data);
+	return mp4;
 }
 
-var parse_moov = function(offset) {
-
-	var moov_size = 0; // read 4 bytes unpacked N
-	var moov_type = 0; // read 4 bytes
-
+var parse_moov = function(mp4data, buffer, offset) {
+	var moov_size = fs.readSync(mp4data, buffer, offset, 4, 0); // read 4 bytes unpacked N
+	var moov_type = fs.readSync(mp4data, buffer, offset, 4, 4); // read 4 bytes
 	moov_size = offset + moov_size;
 
 	offset += 8;
+	//console.log("SIZING ::", offset, moov_size, offset);
 	while (offset<moov_size) {
 
-		var size = 0; // read 4 bytes unpacked N
-		var type = 0; // read 4 bytes
+		var size = fs.readSync(mp4data, buffer, offset, 4, 0); // read 4 bytes unpacked N
+		var type = fs.readSync(mp4data, buffer, offset, 4, 4); // read 4 bytes
+	//console.log("MOOVE::", size, type);
 
+		// Motion Vector High Definition (aka MVHD)
 		if (type=="mvhd") {
-			parse_mvhd(offset);
+			parse_mvhd(mp4data, buffer, offset);
+
+		// Trak (Aka Track)
 		} else if (type=="trak") {
-			parse_track(offset);
+			parse_track(mp4data, buffer, offset);
+
+		// User Data Space (aka UDTA)
 		} else if (type=="udta") {
-			parse_udta(offset);
+			parse_udta(mp4data, buffer, offset);
 		}
 
 		offset += size;
@@ -63,17 +110,18 @@ var parse_moov = function(offset) {
 	}
 }
 
-var parse_track = function(offset) {
+var parse_track = function(mp4data, buffer, offset) {
 
-	var track_size = 0; //read 4 bytes unpacked N
-	var track_type = 0; //read 4 bytes
+console.log("TRACK");
+	var track_size = fs.readSync(mp4data, buffer, offset, 4, 0);; //read 4 bytes unpacked N
+	var track_type = fs.readSync(mp4data, buffer, offset, 4, 4);; //read 4 bytes
 
 	track_offset = offset + track_size;
 
 	offset += 8;
 	while(offset<track_size) {
-		var size = 0; // read 4 bytes unpacked N
-		var type = 0; //read 4 bytes
+		var size = fs.readSync(mp4data, buffer, offset, 4, 0); // read 4 bytes unpacked N
+		var type = fs.readSync(mp4data, buffer, offset, 4, 4); //read 4 bytes
 
 		if (type=="tkhd") {
 			parse_tkhd(offset);
@@ -84,31 +132,31 @@ var parse_track = function(offset) {
 	}
 }
 
-var parse_tkhd = function(offset) {
+var parse_tkhd = function(mp4data, buffer, offset) {
+console.log("TKHD");
 	offset += 8
 	//seek offset
 
-	var version = 0; // read 1 bytes 8bit unpacked C
-	var flags = 0; // read 3 bytes
+	var version = fs.readSync(mp4data, buffer, offset, 1, 0); // read 1 bytes 8bit unpacked C
+	var flags = fs.readSync(mp4data, buffer, offset, 3, 1); // read 3 bytes
 
 	var ctime = 0;
 	var mtime = 0;
 	var track_id = 0;
 	var reserved = 0;
 	var duration = 0;
-
 	if (version==0) {
-		ctime = 0; // read 4 bytes unpacked N
-		mtime = 0; // read 4 bytes unpacked N
-		track_id = 0; // read 4 bytes unpacked N
-		reserved = 0; // read 4 bytes
-		duration = 0; // read 4 bytes unpacked N
+		ctime = fs.readSync(mp4data, buffer, offset, 4, 4); // read 4 bytes unpacked N
+		mtime = fs.readSync(mp4data, buffer, offset, 4, 8); // read 4 bytes unpacked N
+		track_id = fs.readSync(mp4data, buffer, offset, 4, 12); // read 4 bytes unpacked N
+		reserved = fs.readSync(mp4data, buffer, offset, 4, 16); // read 4 bytes
+		duration = fs.readSync(mp4data, buffer, offset, 4, 20); // read 4 bytes unpacked N
 	} else if (version==1) {
-		ctime = 0; // read 8 bytes unpacked Q
-		mtime = 0; // read 8 bytes unpacked Q
-		track_id = 0; // read 4 bytes unpacked N
-		reserved = 0; // read 4 bytes
-		duration = 0; // read 4 bytes unpacked Q
+		ctime = fs.readSync(mp4data, buffer, offset, 8, 4); // read 8 bytes unpacked Q
+		mtime = fs.readSync(mp4data, buffer, offset, 8, 12); // read 8 bytes unpacked Q
+		track_id = fs.readSync(mp4data, buffer, offset, 4, 20); // read 4 bytes unpacked N
+		reserved = fs.readSync(mp4data, buffer, offset, 4, 24); // read 4 bytes
+		duration = fs.readSync(mp4data, buffer, offset, 4, 28); // read 4 bytes unpacked Q
 	}
 
 	reserved = 0; // read 8 bytes
@@ -136,7 +184,8 @@ var parse_tkhd = function(offset) {
 	}
 }
 
-var parse_mvhd = function(offset) {
+var parse_mvhd = function(mp4data, buffer, offset) {
+console.log("MVHD");
 	offset += 8;
 	// seek offset
 
@@ -168,6 +217,6 @@ var parse_mvhd = function(offset) {
 	}
 }
 
-var parse_udta = function(offset) {
+var parse_udta = function(mp4data, buffer, offset) {
 
 }
