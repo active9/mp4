@@ -45,8 +45,8 @@ module.exports = function(mp4file) {
 	var file_size = mp4stats.size;
 	console.log("Filesize ", file_size, ' bytes');
 	var offset = 0;
-	var atom_size = 16;
-	var atom_type = "ftyp"; 
+	var atom_size = 16; // Boldy Guess The Atom_Size
+	var atom_type = "ftyp"; // Default Atom/Box Type
 
 	var mp4 = {
 		ftyp: {}
@@ -57,9 +57,12 @@ module.exports = function(mp4file) {
 
 		// Forget The Yellow Pages (aka Brands)
 		if (atom_type=="ftyp") {
-			mp4.major_brand = readChunk.sync(mp4file, offset+0, 4);
-			mp4.minor_version = readChunk.sync(mp4file, offset+4, 4);
-			mp4.compatible_brands = readChunk.sync(mp4file, offset+8, 4);
+			mp4.atom_size = readChunk.sync(mp4file, offset+0, 4)[3];
+			atom_size = mp4.atom_size;
+			atom_type = bufferToChar(readChunk.sync(mp4file, offset+4, 4));
+			mp4.major_brand = bufferToChar(readChunk.sync(mp4file, offset+8, 4));
+			mp4.minor_version = bufferToChar(readChunk.sync(mp4file, offset+12, 4));
+			mp4.compatible_brands = bufferToChar(readChunk.sync(mp4file, offset+16, atom_size-16));
 
 			// seek offset
 			offset += atom_size;
@@ -78,6 +81,17 @@ module.exports = function(mp4file) {
 	console.log("Mp4:", mp4);
 	fs.closeSync(mp4data);
 	return mp4;
+}
+
+var bufferToChar = function(buffer) {
+	var output = '';
+	var i = buffer.length;
+	var o = 0;
+	while (o<i) {
+		output += ''+ String.fromCharCode(buffer[o]) +'';
+		o++;
+	}
+	return output;
 }
 
 var parse_moov = function(mp4data, buffer, offset) {

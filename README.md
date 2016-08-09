@@ -1,8 +1,7 @@
 # MP4
 A Pure Javascript Mp4 Container Parser Based On ISO_IEC_14496-12
 
-# Version
-0.5.0 (Partial Container Support)
+# Notice
 
 This package is still incubating and is now some what functional
 
