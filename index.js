@@ -28,11 +28,12 @@
 //	- mp4 file stream offset
 //	- mp4 json data output
 //	- udta meta data parsing
-//
+//  - make readChunk.sync efficient!
 
 var fs = require('fs');
 var path = require('path');
 var util = require('util');
+var readChunk = require('read-chunk');
 var buffer= new Buffer(512000000);
 
 module.exports = function(mp4file) {
@@ -54,11 +55,11 @@ module.exports = function(mp4file) {
 	while(offset<=file_size) {
 		//console.log("OFFSET:", offset);
 
-		// Forget The Yellow Pages (aka Brands) 
+		// Forget The Yellow Pages (aka Brands)
 		if (atom_type=="ftyp") {
-			mp4.major_brand = fs.readSync(mp4data, buffer, offset, 4, 0);
-			mp4.minor_version = fs.readSync(mp4data, buffer, offset, 4, 4);
-			mp4.compatible_brands = fs.readSync(mp4data, buffer, offset, 4, 8);
+			mp4.major_brand = readChunk.sync(mp4file, offset+0, 4);
+			mp4.minor_version = readChunk.sync(mp4file, offset+4, 4);
+			mp4.compatible_brands = readChunk.sync(mp4file, offset+8, 4);
 
 			// seek offset
 			offset += atom_size;

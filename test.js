@@ -1,3 +1,3 @@
 var mp4 = require('./index.js');
 
-mp4('./vid.mp4');
+mp4('./fixture.mp4');

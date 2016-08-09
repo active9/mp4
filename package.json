@@ -1,6 +1,6 @@
 {
   "name": "mp4",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "A Pure Javascript Mp4 Container Parser Based On ISO_ISEC_14496-12",
   "main": "index.js",
   "scripts": {
@@ -22,5 +22,8 @@
   "bugs": {
     "url": "https://github.com/active9/mp4/issues"
   },
-  "homepage": "https://github.com/active9/mp4"
+  "homepage": "https://github.com/active9/mp4",
+  "dependencies": {
+    "read-chunk": "^2.0.0"
+  }
 }
